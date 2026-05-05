@@ -21,8 +21,15 @@ static QueueHandle_t gpio_evt_queue = NULL;
 
 static void IRAM_ATTR gpio_isr_handler(void* arg)
 {
-    uint32_t gpio_num = (uint32_t) arg;
-    xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+	static uint32_t last_registered_time = 0;
+	
+	uint32_t current_time = xTaskGetTickCountFromISR() * portTICK_PERIOD_MS;
+	
+	if (current_time - last_registered_time > DEBOUNCE_TIME_MS) {
+	    uint32_t gpio_num = (uint32_t) arg;
+	    xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+		last_registered_time = current_time;
+	}
 }
 
 static void gpio_task_example(void* arg)
@@ -38,34 +45,18 @@ static void gpio_task_example(void* arg)
 void gpio_isr_start(void) {
 	gpio_config_t io_conf = {};
 	
-	//disable interrupt
 	io_conf.intr_type = GPIO_INTR_NEGEDGE;
-	//set as output mode
 	io_conf.mode = GPIO_MODE_INPUT;
-	//bit mask of the pins that you want to set,e.g.GPIO18/19
 	io_conf.pin_bit_mask = (1ULL << BUTTON_INPUT_GPIO);
-	
-	//disable pull-down mode
 	io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-	//disable pull-up mode
-	io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
-	//configure GPIO with the given settings
-	
+	io_conf.pull_up_en = GPIO_PULLUP_ENABLE;	
 	gpio_config(&io_conf);
 
-	//create a queue to handle gpio event from isr
 	gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
-	//start gpio task
 	xTaskCreate(gpio_task_example, "gpio_task_example", 2048, NULL, 10, NULL);
 
-	//install gpio isr service
 	gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
-	//hook isr handler for specific gpio pin
 	gpio_isr_handler_add(BUTTON_INPUT_GPIO, gpio_isr_handler, (void*) BUTTON_INPUT_GPIO);
 
-
-	//printf("Minimum free heap size: %"PRIu32" bytes\n", esp_get_minimum_free_heap_size());
-
-	//while (1);
 }
 

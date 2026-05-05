@@ -10,6 +10,7 @@
 
 #define BUTTON_INPUT_GPIO		18
 #define ESP_INTR_FLAG_DEFAULT 	0
+#define DEBOUNCE_TIME_MS		300
 
 void gpio_isr_start(void);
 
