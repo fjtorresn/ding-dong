@@ -7,8 +7,10 @@
 #include "portmacro.h"
 #include "esp_log.h"
 #include "driver/gpio.h"
+#include "nvs_flash.h"
 
 #include "gpio_isr.h"
+#include "wifi_app.h"
 
 #define BLINK_GPIO		25
 
@@ -32,10 +34,19 @@ static void configure_led(void)
 
 void app_main(void)
 {
+	// Initialize NVS
+	esp_err_t ret = nvs_flash_init();
+	if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+	    ESP_ERROR_CHECK(nvs_flash_erase());
+	    ret = nvs_flash_init();
+	}
+	ESP_ERROR_CHECK(ret);
+	
 	configure_led();
 	gpio_isr_start();
+	wifi_app_start();
     while (1) {
-		ESP_LOGI(TAG, "Turning the LED %s!", s_led_state == true ? "ON" : "OFF");
+		//ESP_LOGI(TAG, "Turning the LED %s!", s_led_state == true ? "ON" : "OFF");
 		blink_led();
 		/* Toggle the LED state */
 		s_led_state = !s_led_state;
