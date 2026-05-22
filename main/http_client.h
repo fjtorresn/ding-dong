@@ -1,0 +1,17 @@
+/*
+ * http_client.h
+ *
+ *  Created on: 21-05-2026
+ *      Author: Francisco
+ */
+
+#ifndef MAIN_HTTP_CLIENT_H_
+#define MAIN_HTTP_CLIENT_H_
+
+#define MAX_HTTP_RECV_BUFFER 512
+#define MAX_HTTP_OUTPUT_BUFFER 2048
+#define HOST_URL "http://192.168.1.16:80/login"
+
+void http_client_start(void);
+
+#endif /* MAIN_HTTP_CLIENT_H_ */

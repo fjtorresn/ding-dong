@@ -26,6 +26,10 @@ static QueueHandle_t wifi_app_queue_handle;
 // Network interface for station mode
 esp_netif_t* esp_netif_sta = NULL;
 
+// Event group for wifi events
+EventGroupHandle_t wifi_event_group;
+const int WIFI_CONNECTED_BIT = BIT0;
+
 /**
  * Wifi application handler
  * @param arg data that is passed to the handler when is called
@@ -48,6 +52,15 @@ static void wifi_app_event_handler(void* arg, esp_event_base_t event_base, int32
             case WIFI_EVENT_STA_DISCONNECTED:
                 ESP_LOGW(TAG, "WiFi disconnected, retrying...");
                 esp_wifi_connect();
+                xEventGroupClearBits(wifi_event_group, WIFI_CONNECTED_BIT);
+                break;
+
+            case WIFI_EVENT_STA_CONNECTED:
+                ESP_LOGI(TAG, "WiFi connected to AP");
+                break;
+
+            case WIFI_EVENT_HOME_CHANNEL_CHANGE:
+                ESP_LOGI(TAG, "Home channel change event received");
                 break;
 
             default:
@@ -62,6 +75,7 @@ static void wifi_app_event_handler(void* arg, esp_event_base_t event_base, int32
             case IP_EVENT_STA_GOT_IP:
                 ESP_LOGI(TAG, "Got IP address");
                 wifi_app_send_message(WIFI_APP_MSG_STA_CONNECTED_GOT_IP);
+                xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
                 break;
 
             default:
@@ -160,8 +174,9 @@ void wifi_app_start(void)
 {
     ESP_LOGI(TAG, "Starting WiFi application...");
 
+    wifi_event_group = xEventGroupCreate();
+
     wifi_app_queue_handle = xQueueCreate(3, sizeof(wifi_app_message_e));
 
-    // Start the WiFi task
     xTaskCreatePinnedToCore(&wifi_app_task, "wifi_app_task", WIFI_APP_TASK_STACK_SIZE, NULL, WIFI_APP_TASK_PRIORITY, NULL, WIFI_APP_TASK_CORE_ID);
 }

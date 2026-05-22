@@ -11,6 +11,7 @@
 
 #include "gpio_isr.h"
 #include "wifi_app.h"
+#include "http_client.h"
 
 #define BLINK_GPIO		25
 
@@ -45,6 +46,8 @@ void app_main(void)
 	configure_led();
 	gpio_isr_start();
 	wifi_app_start();
+	http_client_start();
+
     while (1) {
 		//ESP_LOGI(TAG, "Turning the LED %s!", s_led_state == true ? "ON" : "OFF");
 		blink_led();
