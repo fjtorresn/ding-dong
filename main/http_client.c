@@ -14,11 +14,13 @@
 
 #include "esp_http_client.h"
 #include "http_client.h"
+#include "tasks_common.h"
+
 
 static const char *TAG = "HTTP_CLIENT";
 
-extern EventGroupHandle_t wifi_event_group;
-extern const int WIFI_CONNECTED_BIT;
+static EventGroupHandle_t local_system_events = NULL;
+
 
 esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 {
@@ -116,7 +118,7 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 }
 
 
-static void http_rest_with_url(void)
+static void send_notification(void)
 {
     char local_response_buffer[MAX_HTTP_OUTPUT_BUFFER + 1] = {0};
     esp_http_client_config_t config = {
@@ -147,15 +149,25 @@ static void http_test_task(void *pvParameters)
 {
     ESP_LOGI(TAG, "HTTP task started, waiting for Wi-Fi...");
     
-    xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_BIT, pdFALSE, pdTRUE, portMAX_DELAY);
-    
-    ESP_LOGI(TAG, "Wi-Fi is ready! Sending HTTP request...");
-    http_rest_with_url();
-    
-    vTaskDelete(NULL);
+    while (1) 
+    {
+        xEventGroupWaitBits(local_system_events, RING_PRESSED_BIT, pdTRUE, pdFALSE, portMAX_DELAY);
+        
+        ESP_LOGI(TAG, "¡Botón detectado por el Notificador!");
+
+        EventBits_t current_bits = xEventGroupGetBits(local_system_events);
+        if ( current_bits & WIFI_CONNECTED_BIT )
+        {
+            send_notification();
+        } else 
+        {
+            ESP_LOGW(TAG, "No hay Wi-Fi conectado. Descartando notificación.");
+        }
+    }
 }
 
-void http_client_start(void)
+void http_client_start(EventGroupHandle_t system_events)
 {
-    xTaskCreatePinnedToCore(&http_test_task, "http_test_task", 8192, NULL, 5, NULL, 0);
+    local_system_events = system_events;
+    xTaskCreatePinnedToCore(&http_test_task, "http_test_task", HTTP_CLIENT_TASK_STACK_SIZE, NULL, HTTP_CLIENT_TASK_PRIORITY, NULL, HTTP_CLIENT_TASK_CORE_ID);
 }

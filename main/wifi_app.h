@@ -74,4 +74,4 @@
  /**
   * Starts the Wi-Fi RTOS task
   */
- void wifi_app_start(void);
+ void wifi_app_start(EventGroupHandle_t system_events);

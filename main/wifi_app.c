@@ -20,15 +20,13 @@
 // TAG used for ESP logs
 static const char TAG [] = "wifi_app";
 
+static EventGroupHandle_t local_system_events = NULL;
+
 // Queue handle for WiFi application messages
 static QueueHandle_t wifi_app_queue_handle;
 
 // Network interface for station mode
 esp_netif_t* esp_netif_sta = NULL;
-
-// Event group for wifi events
-EventGroupHandle_t wifi_event_group;
-const int WIFI_CONNECTED_BIT = BIT0;
 
 /**
  * Wifi application handler
@@ -52,7 +50,7 @@ static void wifi_app_event_handler(void* arg, esp_event_base_t event_base, int32
             case WIFI_EVENT_STA_DISCONNECTED:
                 ESP_LOGW(TAG, "WiFi disconnected, retrying...");
                 esp_wifi_connect();
-                xEventGroupClearBits(wifi_event_group, WIFI_CONNECTED_BIT);
+                xEventGroupClearBits(local_system_events, WIFI_CONNECTED_BIT);
                 break;
 
             case WIFI_EVENT_STA_CONNECTED:
@@ -75,7 +73,7 @@ static void wifi_app_event_handler(void* arg, esp_event_base_t event_base, int32
             case IP_EVENT_STA_GOT_IP:
                 ESP_LOGI(TAG, "Got IP address");
                 wifi_app_send_message(WIFI_APP_MSG_STA_CONNECTED_GOT_IP);
-                xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
+                xEventGroupSetBits(local_system_events, WIFI_CONNECTED_BIT);
                 break;
 
             default:
@@ -170,12 +168,11 @@ BaseType_t wifi_app_send_message(wifi_app_message_e msg_id)
     return xQueueSend(wifi_app_queue_handle, &msg, portMAX_DELAY);
 }
 
-void wifi_app_start(void)
+void wifi_app_start(EventGroupHandle_t system_events)
 {
     ESP_LOGI(TAG, "Starting WiFi application...");
 
-    wifi_event_group = xEventGroupCreate();
-
+    local_system_events = system_events;
     wifi_app_queue_handle = xQueueCreate(3, sizeof(wifi_app_message_e));
 
     xTaskCreatePinnedToCore(&wifi_app_task, "wifi_app_task", WIFI_APP_TASK_STACK_SIZE, NULL, WIFI_APP_TASK_PRIORITY, NULL, WIFI_APP_TASK_CORE_ID);

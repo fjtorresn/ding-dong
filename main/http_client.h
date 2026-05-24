@@ -10,8 +10,8 @@
 
 #define MAX_HTTP_RECV_BUFFER 512
 #define MAX_HTTP_OUTPUT_BUFFER 2048
-#define HOST_URL "http://192.168.1.16:80/login"
+#define HOST_URL "http://192.168.1.20:80/login"
 
-void http_client_start(void);
+void http_client_start(EventGroupHandle_t system_events);
 
 #endif /* MAIN_HTTP_CLIENT_H_ */
