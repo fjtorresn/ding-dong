@@ -11,6 +11,7 @@
 #include "freertos/task.h"
 #include "esp_system.h"
 #include "esp_tls.h"
+#include "esp_crt_bundle.h"
 
 #include "esp_http_client.h"
 #include "http_client.h"
@@ -127,13 +128,14 @@ static void send_notification(void)
         .event_handler = _http_event_handler,
         .user_data = local_response_buffer,        // Pass address of local buffer to get response
         .disable_auto_redirect = true,
+        .crt_bundle_attach = esp_crt_bundle_attach,
     };
     ESP_LOGI(TAG, "HTTP request with url =>");
     esp_http_client_handle_t client = esp_http_client_init(&config);
 
-    const char *post_data = "{\"field1\":\"value1\"}";
+    //const char *post_data = "{\"field1\":\"value1\"}";
     esp_http_client_set_header(client, "Content-Type", "application/json");
-    esp_http_client_set_post_field(client, post_data, strlen(post_data));
+    //esp_http_client_set_post_field(client, post_data, strlen(post_data));
     esp_err_t err = esp_http_client_perform(client);
     if (err == ESP_OK) {
         ESP_LOGI(TAG, "HTTP POST Status = %d, content_length = %"PRId64,

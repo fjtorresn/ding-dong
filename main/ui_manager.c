@@ -10,6 +10,7 @@
 #include <inttypes.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/timers.h"
 #include "esp_log.h"
 #include "driver/gpio.h"
 #include "tasks_common.h"
@@ -20,9 +21,9 @@ static const char *TAG = "UI_MANAGER";
 
 static EventGroupHandle_t local_system_events = NULL;
 
-static uint8_t s_led_state = 0;
-
 static SemaphoreHandle_t gpio_evt_smph = NULL;
+
+static TimerHandle_t led_timer = NULL;
 
 
 static void IRAM_ATTR gpio_isr_handler(void* arg)
@@ -37,12 +38,25 @@ static void IRAM_ATTR gpio_isr_handler(void* arg)
 	}
 }
 
+void timer_callback(TimerHandle_t xTimer) 
+{
+    ESP_LOGI(TAG, "¡Han pasado 5 segundos! Ejecutando acción...");
+	gpio_set_level(BLINK_OUTPUT_GPIO, 0);
+	xTimerStop(led_timer, 0);
+}
+
 static void ui_manager_task(void* arg)
 {
     for (;;) {
         if (xSemaphoreTake(gpio_evt_smph, portMAX_DELAY)) {
-			gpio_set_level(BLINK_OUTPUT_GPIO, s_led_state);
-			s_led_state = !s_led_state;
+			gpio_set_level(BLINK_OUTPUT_GPIO, 1);
+			if ( led_timer != NULL ) {
+				xTimerStart(led_timer, 0);
+				ESP_LOGI(TAG, "Timer iniciado correctamente.");
+			}
+			else {
+				ESP_LOGE(TAG, "El timer se creó, pero falló al iniciar.");
+			}
 			ESP_LOGI(TAG, "Botón presionado");
 			xEventGroupSetBits(local_system_events, RING_PRESSED_BIT);
         }
@@ -54,6 +68,9 @@ void ui_manager_start(EventGroupHandle_t system_events) {
 	// Configuration for the LED
 	gpio_reset_pin(BLINK_OUTPUT_GPIO);
     gpio_set_direction(BLINK_OUTPUT_GPIO, GPIO_MODE_OUTPUT);
+
+	// Led timer
+	led_timer = xTimerCreate("LED_Timer", pdMS_TO_TICKS(LED_TIME), pdTRUE, NULL, timer_callback);
 
 	// Configuration for the button
 	gpio_config_t io_conf = {};
