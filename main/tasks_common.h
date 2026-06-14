@@ -23,6 +23,11 @@
 #define HTTP_CLIENT_TASK_PRIORITY       5
 #define HTTP_CLIENT_TASK_CORE_ID        1
 
+// ESP-NOW app task
+#define ESPNOW_APP_TASK_STACK_SIZE      2048
+#define ESPNOW_APP_TASK_PRIORITY        6
+#define ESPNOW_APP_TASK_CORE_ID         0
+
 #define WIFI_CONNECTED_BIT              (1 << 0)
 #define RING_PRESSED_BIT                (1 << 1)
 
